@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lô Tô Tết - 3D Glass Master</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Dancing+Script:wght@700&family=Plus+Jakarta+Sans:wght@400;600;800&display=swap');
+
+        :root {
+            --gold: #f9d976;
+            --gold-dark: #b38f00;
+            --glass-bg: rgba(30, 0, 0, 0.65);
+            --tet-red: #cc0000;
+            --tet-red-bright: #ff1a1a;
+        }
+
+        body {
+            margin: 0;
+            background: #080101;
+            color: #fff;
+            font-family: 'Plus Jakarta Sans', sans-serif;
+            overflow: hidden;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .bg-ambient {
+            position: fixed;
+            inset: 0;
+            background: 
+                radial-gradient(circle at 20% 20%, #400000 0%, transparent 40%),
+                radial-gradient(circle at 80% 80%, #300000 0%, transparent 40%),
+                #080101;
+            z-index: -2;
+        }
+
+        .bg-grid {
+            position: fixed;
+            inset: 0;
+            background-image: radial-gradient(circle at 1px 1px, rgba(255,255,255,0.03) 1px, transparent 0);
+            background-size: 40px 40px;
+            z-index: -1;
+        }
+
+        .game-shell {
+            width: 95vw;
+            max-width: 1100px;
+            height: 92vh;
+            background: var(--glass-bg);
+            backdrop-filter: blur(30px) saturate(150%);
+            -webkit-backdrop-filter: blur(30px) saturate(150%);
+            border: 1px solid rgba(255, 215, 0, 0.2);
+            border-top: 1px solid rgba(255, 255, 255, 0.15);
+            border-left: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 40px;
+            display: flex;
+            flex-direction: column;
+            padding: 30px;
+            box-shadow: 
+                0 40px 100px rgba(0,0,0,0.8),
+                inset 0 0 40px rgba(255, 0, 0, 0.05);
+            position: relative;
+        }
+
+        .billiard-ball {
+            position: absolute;
+            width: 90px;
+            height: 90px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: radial-gradient(circle at 30% 30%, 
+                rgba(255, 80, 80, 1) 0%, 
+                rgba(180, 0, 0, 1) 60%, 
+                rgba(60, 0, 0, 1) 100%);
+            box-shadow: 
+                0 18px 40px rgba(0,0,0,0.6),
+                inset -5px -5px 15px rgba(0,0,0,0.5),
+                inset 8px 8px 15px rgba(255,255,255,0.3);
+            z-index: 10;
+        }
+
+        .billiard-ball::before {
+            content: '';
+            position: absolute;
+            top: 15%;
+            left: 20%;
+            width: 28%;
+            height: 18%;
+            background: rgba(255, 255, 255, 0.6);
+            border-radius: 50%;
+            filter: blur(2px);
+            transform: rotate(-25deg);
+        }
+
+        .ball-label {
+            width: 50px;
+            height: 50px;
+            background: #fff;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.4);
+            border: 1px solid rgba(0,0,0,0.1);
+        }
+
+        .ball-num {
+            color: #000;
+            font-weight: 800;
+            font-size: 1.6rem;
+        }
+
+        .winner-ball {
+            width: 280px !important;
+            height: 280px !important;
+            box-shadow: 0 0 150px rgba(204, 0, 0, 0.5), 0 40px 100px rgba(0,0,0,0.8);
+            z-index: 100 !important;
+        }
+        .winner-ball .ball-label { width: 160px; height: 160px; }
+        .winner-ball .ball-num { font-size: 7.5rem; }
+
+        #confirmModal .modal-container {
+            background: linear-gradient(145deg, #990000, #550000);
+            border: 2px solid var(--gold);
+            border-radius: 40px;
+            max-width: 400px;
+            width: 85%;
+            padding: 40px;
+            text-align: center;
+            box-shadow: 0 30px 60px rgba(0,0,0,0.8), 0 0 40px rgba(204, 0, 0, 0.3);
+            backdrop-filter: blur(20px);
+        }
+
+        .btn-modal-confirm {
+            background: linear-gradient(to bottom, var(--gold), var(--gold-dark));
+            color: #4a0000;
+            padding: 15px 0;
+            border-radius: 100px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            width: 100%;
+            transition: 0.3s;
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .footer-history {
+            background: rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 215, 0, 0.1);
+            padding: 20px;
+            border-radius: 30px;
+            height: 340px;
+            box-shadow: inset 0 2px 10px rgba(0,0,0,0.5);
+        }
+
+        .history-grid {
+            display: grid;
+            grid-template-columns: repeat(10, 1fr);
+            gap: 10px;
+            height: 100%;
+        }
+
+        .history-item {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 1.1rem;
+            color: rgba(255, 255, 255, 0.1);
+            transition: all 0.5s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+
+        .history-item.active {
+            background: linear-gradient(135deg, var(--gold), #fff3a1);
+            color: #4a0000;
+            box-shadow: 0 0 30px rgba(249, 217, 118, 0.4);
+            transform: scale(1.05);
+        }
+
+        .btn-action {
+            background: linear-gradient(180deg, #ff1a1a 0%, #990000 100%);
+            color: #fff;
+            padding: 18px 100px;
+            border-radius: 100px;
+            font-weight: 800;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+            box-shadow: 0 10px 30px rgba(204, 0, 0, 0.3), inset 0 2px 2px rgba(255, 255, 255, 0.4);
+            border: 1px solid #660000;
+            transition: all 0.3s;
+        }
+        
+        .btn-action:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            filter: grayscale(0.5);
+        }
+
+        .game-title {
+            font-family: 'Dancing Script', cursive;
+            font-size: 4rem;
+            background: linear-gradient(to bottom, #fff, var(--gold));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .status-pill {
+            background: rgba(255,255,255,0.05);
+            padding: 5px 20px;
+            border-radius: 100px;
+            border: 1px solid rgba(255,255,255,0.1);
+            font-size: 9px;
+            letter-spacing: 4px;
+            text-transform: uppercase;
+            color: var(--gold);
+        }
+
+        .lantern {
+            position: absolute;
+            font-size: 2.5rem;
+            filter: drop-shadow(0 0 15px var(--tet-red));
+            animation: swing 3.5s ease-in-out infinite alternate;
+            transform-origin: top center;
+        }
+        @keyframes swing {
+            from { transform: rotate(-5deg); }
+            to { transform: rotate(5deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="bg-ambient"></div>
+    <div class="bg-grid"></div>
+
+    <div class="lantern top-10 left-10">🏮</div>
+    <div class="lantern top-10 right-10">🏮</div>
+
+    <div id="confirmModal" class="fixed inset-0 backdrop-blur-xl z-[2000] hidden items-center justify-center opacity-0 transition-all duration-300">
+        <div class="modal-container scale-90 transition-all">
+            <div class="text-4xl mb-4">🧧</div>
+            <h2 class="text-2xl font-black text-white mb-2 tracking-tight">CHƠI VÒNG MỚI?</h2>
+            <p class="text-red-100/60 text-[11px] mb-8 leading-relaxed uppercase tracking-widest">Toàn bộ quẻ lộc cũ sẽ bị xóa bỏ</p>
+            <div class="flex flex-col gap-3">
+                <button id="confirmReset" class="btn-modal-confirm">XÁC NHẬN</button>
+                <button id="cancelReset" class="text-white/40 py-2 text-[10px] font-extrabold uppercase tracking-tighter hover:text-white transition-colors">QUAY LẠI</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-shell">
+        <div class="flex justify-between items-center mb-4">
+            <button id="resetBtn" class="text-gold/50 text-[12px] font-bold tracking-widest uppercase hover:text-gold transition-colors">VÒNG MỚI</button>
+            <div class="flex flex-col items-end">
+                <span id="count" class="text-4xl font-black text-white leading-none">00</span>
+                <span class="text-[9px] font-bold text-white/30 tracking-tighter uppercase">Lộc Đã Rút</span>
+            </div>
+        </div>
+
+        <div class="flex-grow flex flex-col items-center justify-center">
+            <div class="text-center mb-8">
+                <h1 class="game-title">Lộc Xuân</h1>
+                <div class="flex justify-center">
+                    <div id="status" class="status-pill">Sẵn sàng gieo quẻ</div>
+                </div>
+            </div>
+
+            <div id="ballField" class="w-full h-[320px] relative"></div>
+
+            <div class="mt-8 mb-4">
+                <button class="btn-action" id="spinBtn">RÚT LỘC</button>
+            </div>
+        </div>
+
+        <div class="footer-history">
+            <div id="history" class="history-grid"></div>
+        </div>
+    </div>
+
+    <audio id="audioPlayer"></audio>
+
+    <script>
+        const spinBtn = document.getElementById('spinBtn');
+        const resetBtn = document.getElementById('resetBtn');
+        const ballField = document.getElementById('ballField');
+        const historyDiv = document.getElementById('history');
+        const countDisplay = document.getElementById('count');
+        const statusText = document.getElementById('status');
+        const audioPlayer = document.getElementById('audioPlayer');
+        
+        const confirmModal = document.getElementById('confirmModal');
+        const cancelReset = document.getElementById('cancelReset');
+        const confirmReset = document.getElementById('confirmReset');
+
+        // DANH SÁCH FILE MP3 TRÊN GITHUB
+        const AUDIO_FILES = [
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000003.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000004.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000005.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000006.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000007.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000008.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000009.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000010.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000011.MP3",
+            "https://raw.githubusercontent.com/vonams09/lotov2/main/000012.MP3"
+        ];
+
+        let drawnNumbers = [];
+        let isSpinning = false;
+        let balls = [];
+        const BALL_SIZE = 90;
+        const TOTAL = 60;
+        const STAGES = [9, 6, 4, 3, 2, 1];
+
+        function initHistory() {
+            historyDiv.innerHTML = '';
+            for(let i=1; i<=TOTAL; i++) {
+                const item = document.createElement('div');
+                item.className = 'history-item';
+                item.id = `num-${i}`;
+                item.innerText = i;
+                historyDiv.appendChild(item);
+            }
+        }
+
+        class Ball {
+            constructor(number) {
+                this.number = number;
+                this.isStatic = false;
+                this.element = this.createHTMLElement();
+                
+                const fieldRect = ballField.getBoundingClientRect();
+                this.x = Math.random() * (fieldRect.width - BALL_SIZE);
+                this.y = Math.random() * (fieldRect.height - BALL_SIZE);
+                
+                this.vx = (Math.random() - 0.5) * 22;
+                this.vy = (Math.random() - 0.5) * 22;
+
+                ballField.appendChild(this.element);
+            }
+
+            createHTMLElement() {
+                const el = document.createElement('div');
+                el.className = 'billiard-ball';
+                el.innerHTML = `<div class="ball-label"><span class="ball-num">${this.number}</span></div>`;
+                return el;
+            }
+
+            update() {
+                if (this.isStatic) return;
+                const fieldRect = ballField.getBoundingClientRect();
+                this.x += this.vx;
+                this.y += this.vy;
+
+                if (this.x <= 0 || this.x + BALL_SIZE >= fieldRect.width) { 
+                    this.vx *= -1; 
+                    this.x = this.x <= 0 ? 0 : fieldRect.width - BALL_SIZE; 
+                }
+                if (this.y <= 0 || this.y + BALL_SIZE >= fieldRect.height) { 
+                    this.vy *= -1; 
+                    this.y = this.y <= 0 ? 0 : fieldRect.height - BALL_SIZE; 
+                }
+                
+                this.element.style.transform = `translate3d(${this.x}px, ${this.y}px, 0)`;
+            }
+
+            shatter() {
+                const centerX = this.x + BALL_SIZE/2;
+                const centerY = this.y + BALL_SIZE/2;
+                for (let i = 0; i < 20; i++) {
+                    const spark = document.createElement('div');
+                    spark.style.position = 'absolute';
+                    spark.style.width = '5px';
+                    spark.style.height = '5px';
+                    spark.style.background = i % 2 === 0 ? 'var(--gold)' : 'var(--tet-red-bright)';
+                    spark.style.borderRadius = '50%';
+                    spark.style.left = centerX + 'px';
+                    spark.style.top = centerY + 'px';
+                    ballField.appendChild(spark);
+
+                    const angle = Math.random() * Math.PI * 2;
+                    const force = 6 + Math.random() * 12;
+                    let vx = Math.cos(angle) * force;
+                    let vy = Math.sin(angle) * force;
+                    let op = 1;
+
+                    const timer = setInterval(() => {
+                        vx *= 0.94; vy += 0.45;
+                        spark.style.left = (parseFloat(spark.style.left) + vx) + 'px';
+                        spark.style.top = (parseFloat(spark.style.top) + vy) + 'px';
+                        op -= 0.05;
+                        spark.style.opacity = op;
+                        if(op <= 0) { clearInterval(timer); spark.remove(); }
+                    }, 25);
+                }
+                this.element.remove();
+            }
+
+            moveToCenter() {
+                this.isStatic = true;
+                const fieldRect = ballField.getBoundingClientRect();
+                this.element.classList.add('winner-ball');
+                this.x = (fieldRect.width / 2) - 140;
+                this.y = (fieldRect.height / 2) - 140;
+                this.element.style.transform = `translate3d(${this.x}px, ${this.y}px, 0)`;
+                drawnNumbers.push(this.number);
+                
+                setTimeout(() => {
+                    const histItem = document.getElementById(`num-${this.number}`);
+                    if(histItem) histItem.classList.add('active');
+                    countDisplay.innerText = drawnNumbers.length < 10 ? '0' + drawnNumbers.length : drawnNumbers.length;
+                }, 800);
+            }
+        }
+
+        function animate() {
+            balls.forEach(b => b.update());
+            requestAnimationFrame(animate);
+        }
+
+        // Tự động điều chỉnh thời gian dựa trên file nhạc
+        function prepareAudio() {
+            return new Promise((resolve) => {
+                const randomUrl = AUDIO_FILES[Math.floor(Math.random() * AUDIO_FILES.length)];
+                audioPlayer.src = randomUrl;
+                audioPlayer.load();
+                
+                // Lấy thời lượng ngay khi file được tải thông tin cơ bản
+                audioPlayer.onloadedmetadata = () => {
+                    resolve(audioPlayer.duration);
+                };
+
+                // Dự phòng nếu lỗi load nhạc
+                audioPlayer.onerror = () => resolve(5); // Mặc định 5 giây nếu lỗi
+            });
+        }
+
+        async function startElimination() {
+            if (isSpinning || drawnNumbers.length >= TOTAL) return;
+            isSpinning = true;
+            spinBtn.disabled = true;
+            ballField.innerHTML = '';
+            balls = [];
+            
+            const pool = Array.from({length: TOTAL}, (_, i) => i + 1).filter(n => !drawnNumbers.includes(n));
+            const winner = pool[Math.floor(Math.random() * pool.length)];
+
+            statusText.innerText = "Đang thỉnh nhạc lễ...";
+            const totalDuration = await prepareAudio();
+            
+            // Chia thời gian: dành 1 giây cuối cho số hiện ra, phần còn lại chia cho các giai đoạn nổ bóng
+            const playDuration = Math.max(totalDuration - 1, 3); 
+            const stageTime = (playDuration / (STAGES.length - 1)) * 1000;
+
+            audioPlayer.play();
+
+            for (let i = 0; i < STAGES.length; i++) {
+                const stageCount = STAGES[i];
+                statusText.innerText = stageCount === 1 ? "Cung Hỷ Phát Tài" : `Đang lọc ${stageCount} quẻ may mắn...`;
+                
+                if (i === 0) {
+                    const others = pool.filter(n => n !== winner).sort(() => 0.5 - Math.random());
+                    [winner, ...others.slice(0, stageCount - 1)].forEach(num => balls.push(new Ball(num)));
+                } else {
+                    const nextBalls = balls.filter(b => b.number === winner || balls.indexOf(b) < stageCount);
+                    balls.forEach(b => { if(!nextBalls.includes(b)) b.shatter(); });
+                    balls = nextBalls;
+                }
+
+                if (stageCount === 1) {
+                    // Chờ nhạc thực sự kết thúc (hoặc gần kết thúc)
+                    if(!audioPlayer.ended) {
+                        await new Promise(resolve => {
+                            const checkEnded = setInterval(() => {
+                                if (audioPlayer.ended || audioPlayer.currentTime >= totalDuration - 0.2) {
+                                    clearInterval(checkEnded);
+                                    resolve();
+                                }
+                            }, 100);
+                        });
+                    }
+                    balls[0].moveToCenter();
+                    statusText.innerText = "Cung Hỷ Phát Tài";
+                } else {
+                    await new Promise(r => setTimeout(r, stageTime));
+                }
+            }
+            
+            isSpinning = false;
+            spinBtn.disabled = drawnNumbers.length >= TOTAL;
+            if (drawnNumbers.length >= TOTAL) statusText.innerText = "Hội Xuân Viên Mãn";
+        }
+
+        resetBtn.onclick = () => {
+            if(isSpinning) return;
+            confirmModal.classList.remove('hidden');
+            confirmModal.classList.add('flex');
+            setTimeout(() => confirmModal.style.opacity = '1', 10);
+        };
+
+        cancelReset.onclick = () => {
+            confirmModal.style.opacity = '0';
+            setTimeout(() => confirmModal.classList.add('hidden'), 300);
+        };
+
+        confirmReset.onclick = () => {
+            drawnNumbers = []; initHistory();
+            ballField.innerHTML = '';
+            countDisplay.innerText = "00";
+            statusText.innerText = "Sẵn sàng gieo quẻ";
+            audioPlayer.pause();
+            audioPlayer.currentTime = 0;
+            cancelReset.onclick();
+        };
+
+        spinBtn.onclick = startElimination;
+        window.onload = () => { initHistory(); animate(); };
+    </script>
+</body>
+</html>
